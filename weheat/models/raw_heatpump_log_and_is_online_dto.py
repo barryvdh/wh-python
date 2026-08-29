@@ -54,6 +54,14 @@ class RawHeatpumpLogAndIsOnlineDto(BaseModel):
     ot_boiler_return_temperature: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Return temperature of the OpenTherm boiler", alias="otBoilerReturnTemperature")
     central_heating_flow: Optional[StrictInt] = Field(default=None, description="Duty cycle read by pwm pump for central heating circuit", alias="centralHeatingFlow")
     dhw_flow: Optional[StrictInt] = Field(default=None, description="Duty cycle read by pwm pump for DHW circuit", alias="dhwFlow")
+    hq_message_version: Optional[StrictInt] = Field(default=None, description="Version of the HQ message format used for this log", alias="hqMessageVersion")
+    dhw_control_method: Optional[StrictInt] = Field(default=None, description="Control method used for the DHW vessel", alias="dhwControlMethod")
+    dhw_target_temperature: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Target temperature of the DHW vessel", alias="dhwTargetTemperature")
+    cooling_exponential_backoff: Optional[StrictInt] = Field(default=None, description="Minutes to wait after a cooling cycle before cooling may start again", alias="coolingExponentialBackoff")
+    cooling_start_conditions: Optional[StrictInt] = Field(default=None, description="Conditions for starting cooling (bitwise encoded)", alias="coolingStartConditions")
+    cooling_pause_reason: Optional[StrictInt] = Field(default=None, description="Reason cooling is currently paused", alias="coolingPauseReason")
+    cooling_stop_reason: Optional[StrictInt] = Field(default=None, description="Reason the last cooling cycle stopped", alias="coolingStopReason")
+    last_cooling_time: Optional[datetime] = Field(default=None, description="Timestamp of the last time the heat pump was cooling", alias="lastCoolingTime")
     interval: StrictInt = Field(description="Interval for this log in seconds")
     input_status: Optional[StrictInt] = Field(default=None, description="Raw input status of the heat pump", alias="inputStatus")
     current_control_method: Optional[StrictInt] = Field(default=None, description="Raw current control method state of the heat pump", alias="currentControlMethod")
@@ -103,7 +111,7 @@ class RawHeatpumpLogAndIsOnlineDto(BaseModel):
     debug_variable4: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Optional debug variable that can be set to anything in firmware and will be logged as a float  float - 4 bytes", alias="debugVariable4")
     debug_variable5: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Optional debug variable that can be set to anything in firmware and will be logged as a float  float - 4 bytes", alias="debugVariable5")
     is_online: Optional[StrictBool] = Field(default=None, description="A boolean indicating if the heat pump is currently online", alias="isOnline")
-    __properties: ClassVar[List[str]] = ["heatPumpId", "timestamp", "state", "controlBridgeStatus", "controlBridgeStatusDecodedWaterPump", "controlBridgeStatusDecodedGasBoiler", "controlBridgeStatusDecodedElectricHeater", "controlBridgeStatusDecodedWaterPump2", "t1", "t2", "tAirIn", "tAirOut", "tWaterIn", "tWaterOut", "tWaterHouseIn", "rpm", "onOffThermostatState", "tRoom", "tRoomTarget", "tThermostatSetpoint", "otBoilerFeedTemperature", "otBoilerReturnTemperature", "centralHeatingFlow", "dhwFlow", "interval", "inputStatus", "currentControlMethod", "signalStrength", "rpmLimiter", "rpmLimiterType", "pCompressorIn", "pCompressorOut", "pCompressorInTarget", "tCompressorIn", "tCompressorOut", "tCompressorInTransient", "tCompressorOutTransient", "deltaTCompressorInSuperheat", "fan", "fanPower", "temperatureErrorIntegral", "thermostatStatus", "otBoilerStatus", "centralHeatingPwmRequestedDutyCycle", "dhwPwmRequestedDutyCycle", "sinr", "error", "errorDecodedDtcNone", "errorDecodedDtcContinue", "errorDecodedDtcCompressorOff", "errorDecodedDtcDefrostForbidden", "errorDecodedDtcRequestService", "errorDecodedDtcUseHeatingCurve", "errorDecodedDtcDhwForbidden", "errorDecodedDtcError", "errorDecodedDtcInactive", "controlBridgeStatusDecodedDhwValve", "tBoard", "tInverter", "compressorPowerLowAccuracy", "valve", "inverterInputVoltage", "indoorUnitHeaterTemperature", "indoorUnitInputCurrent", "coolingStatus", "cmMassPowerIn", "cmMassPowerOut", "debugVariable1", "debugVariable2", "debugVariable3", "debugVariable4", "debugVariable5", "isOnline"]
+    __properties: ClassVar[List[str]] = ["heatPumpId", "timestamp", "state", "controlBridgeStatus", "controlBridgeStatusDecodedWaterPump", "controlBridgeStatusDecodedGasBoiler", "controlBridgeStatusDecodedElectricHeater", "controlBridgeStatusDecodedWaterPump2", "t1", "t2", "tAirIn", "tAirOut", "tWaterIn", "tWaterOut", "tWaterHouseIn", "rpm", "onOffThermostatState", "tRoom", "tRoomTarget", "tThermostatSetpoint", "otBoilerFeedTemperature", "otBoilerReturnTemperature", "centralHeatingFlow", "dhwFlow", "hqMessageVersion", "dhwControlMethod", "dhwTargetTemperature", "coolingExponentialBackoff", "coolingStartConditions", "coolingPauseReason", "coolingStopReason", "lastCoolingTime", "interval", "inputStatus", "currentControlMethod", "signalStrength", "rpmLimiter", "rpmLimiterType", "pCompressorIn", "pCompressorOut", "pCompressorInTarget", "tCompressorIn", "tCompressorOut", "tCompressorInTransient", "tCompressorOutTransient", "deltaTCompressorInSuperheat", "fan", "fanPower", "temperatureErrorIntegral", "thermostatStatus", "otBoilerStatus", "centralHeatingPwmRequestedDutyCycle", "dhwPwmRequestedDutyCycle", "sinr", "error", "errorDecodedDtcNone", "errorDecodedDtcContinue", "errorDecodedDtcCompressorOff", "errorDecodedDtcDefrostForbidden", "errorDecodedDtcRequestService", "errorDecodedDtcUseHeatingCurve", "errorDecodedDtcDhwForbidden", "errorDecodedDtcError", "errorDecodedDtcInactive", "controlBridgeStatusDecodedDhwValve", "tBoard", "tInverter", "compressorPowerLowAccuracy", "valve", "inverterInputVoltage", "indoorUnitHeaterTemperature", "indoorUnitInputCurrent", "coolingStatus", "cmMassPowerIn", "cmMassPowerOut", "debugVariable1", "debugVariable2", "debugVariable3", "debugVariable4", "debugVariable5", "isOnline"]
 
     model_config = {
         "populate_by_name": True,
@@ -523,6 +531,14 @@ class RawHeatpumpLogAndIsOnlineDto(BaseModel):
             "otBoilerReturnTemperature": obj.get("otBoilerReturnTemperature"),
             "centralHeatingFlow": obj.get("centralHeatingFlow"),
             "dhwFlow": obj.get("dhwFlow"),
+            "hqMessageVersion": obj.get("hqMessageVersion"),
+            "dhwControlMethod": obj.get("dhwControlMethod"),
+            "dhwTargetTemperature": obj.get("dhwTargetTemperature"),
+            "coolingExponentialBackoff": obj.get("coolingExponentialBackoff"),
+            "coolingStartConditions": obj.get("coolingStartConditions"),
+            "coolingPauseReason": obj.get("coolingPauseReason"),
+            "coolingStopReason": obj.get("coolingStopReason"),
+            "lastCoolingTime": obj.get("lastCoolingTime"),
             "interval": obj.get("interval"),
             "inputStatus": obj.get("inputStatus"),
             "currentControlMethod": obj.get("currentControlMethod"),
