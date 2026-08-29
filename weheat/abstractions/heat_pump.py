@@ -1,7 +1,7 @@
 """Weheat heat pump abstraction from the API."""
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum, auto
-from typing import TypeVar, Union, Optional, cast
+from typing import Dict, TypeVar, Union, Optional, cast
 
 import aiohttp
 
@@ -29,6 +29,54 @@ class HeatPump:
         DEFROSTING = auto()
         SELF_TEST = auto()
         MANUAL_CONTROL = auto()
+
+    class CoolingPauseReason(Enum):
+        NONE = 0
+        ROOM_TEMPERATURE_TOO_LOW = 1
+        OUTSIDE_TEMPERATURE_TOO_LOW = 2
+        OUTSIDE_COLDER_THAN_WATER_TEMPERATURE = 3
+        WATER_TEMPERATURE_BELOW_SETPOINT = 4
+        HEAT_PUMP_CONTROL = 5
+        WATER_TEMPERATURE_BELOW_DEWPOINT = 6
+        CONTACT_BLOCKED = 7
+        DEMAND = 8
+
+    class ControlMethod(Enum):
+        NONE = 0
+        HEATING_CURVE = 1
+        ON_OFF_THERMOSTAT = 2
+        BASE_OPEN_THERM = 3
+        SMART_OPEN_THERM = 4
+        CLOUD_THERMOSTAT = 5
+        MANUAL_POWER = 6
+        AUTO_INPUT_SELECT = 7
+        MANUAL_SETPOINT = 8
+        WEHEAT_INTELLIGENCE = 9
+
+    class CoolingStopReason(Enum):
+        NONE = 0
+        DTC = 1
+        CONTROL_METHOD = 2
+        NO_INDOOR_UNIT_COMMUNICATION = 3
+        HEAT_PUMP_CONTROL = 4
+        COOLING_CONTROL = 5
+        CONTACT_SWITCH_OVER = 6
+        THERMOSTAT_DISABLED = 7
+
+    # Bit masks of the conditions that must all be met before cooling can start.
+    COOLING_START_CONDITION_BITS = {
+        "control_method": 1,
+        "dtc": 2,
+        "outside_air_temperature": 4,
+        "inside_temperature": 8,
+        "indoor_unit_connected": 16,
+        "water_to_air": 32,
+        "demand": 64,
+        "water_temperature": 128,
+        "contact_not_blocked": 256,
+        "exponential_backoff": 512,
+        "heat_cool_delay": 1024,
+    }
 
     def __init__(self, api_url: str, uuid: str, client_session: aiohttp.ClientSession | None = None) -> None:
         self._api_url = api_url
@@ -132,6 +180,11 @@ class HeatPump:
         return raw or None
 
     @property
+    def is_online(self) -> Union[bool, None]:
+        """Whether the heat pump was still reporting to the backend at the time of the last log."""
+        return self._if_available("is_online")
+
+    @property
     def water_inlet_temperature(self) -> Union[float, None]:
         """The heat pump water inlet temperature."""
         return self._if_available("t_water_in")
@@ -195,6 +248,11 @@ class HeatPump:
     def dhw_bottom_temperature(self) -> Union[float, None]:
         """The DHW vessel bottom temperature."""
         return self._if_available("t2")
+
+    @property
+    def dhw_target_temperature(self) -> Union[float, None]:
+        """The DHW vessel target temperature."""
+        return self._if_available_and_valid("dhw_target_temperature")
 
     @property
     def cop(self) -> Union[float, None]:
@@ -280,6 +338,75 @@ class HeatPump:
         elif numeric_state >= 200 and numeric_state <= 240:
             return self.State.DEFROSTING
         return None
+
+    @property
+    def last_cooling_time(self) -> Union[datetime, None]:
+        """The last completed cooling cycle, which the restart delay is counted from.
+
+        This is not updated while a cooling cycle is running, so during cooling it still
+        refers to the cycle before it.
+        """
+        return cast(Optional[datetime], self._if_available("last_cooling_time"))
+
+    @property
+    def current_control_method(self) -> Union["HeatPump.ControlMethod", None]:
+        """The control method the heat pump is currently running on."""
+        value = self._if_available("current_control_method")
+        if value is None:
+            return None
+        try:
+            return self.ControlMethod(value)
+        except ValueError:
+            # The backend may report methods this version does not know about yet.
+            return None
+
+    @property
+    def cooling_pause_reason(self) -> Union["HeatPump.CoolingPauseReason", None]:
+        """The reason cooling is currently held off."""
+        value = self._if_available("cooling_pause_reason")
+        if value is None:
+            return None
+        try:
+            return self.CoolingPauseReason(value)
+        except ValueError:
+            # The backend may report reasons this version does not know about yet.
+            return None
+
+    @property
+    def cooling_stop_reason(self) -> Union["HeatPump.CoolingStopReason", None]:
+        """The reason the last cooling cycle was stopped."""
+        value = self._if_available("cooling_stop_reason")
+        if value is None:
+            return None
+        try:
+            return self.CoolingStopReason(value)
+        except ValueError:
+            # The backend may report reasons this version does not know about yet.
+            return None
+
+    @property
+    def cooling_backoff(self) -> Union[int, None]:
+        """The minutes to wait after a cooling cycle before cooling may start again."""
+        return self._if_available("cooling_exponential_backoff")
+
+    @property
+    def cooling_available_from(self) -> Union[datetime, None]:
+        """The moment the wait time after the last cooling cycle expires."""
+        last_cooling_time = self.last_cooling_time
+        if last_cooling_time is None:
+            return None
+        return last_cooling_time + timedelta(minutes=self.cooling_backoff or 0)
+
+    @property
+    def cooling_start_conditions(self) -> Union[Dict[str, bool], None]:
+        """Each condition for starting cooling, and whether it is currently met."""
+        value = self._if_available("cooling_start_conditions")
+        if value is None:
+            return None
+        return {
+            name: bool(value & bit)
+            for name, bit in self.COOLING_START_CONDITION_BITS.items()
+        }
 
     @staticmethod
     def _pwm_to_volume(pwm: float, max: float) -> Union[float, None]:
