@@ -210,7 +210,9 @@ class HeatPump:
             return None
 
         if input > 0:
-            return output / input
+            # While cooling or defrosting the output power is negative, as heat is removed from
+            # the water. The amount of energy moved per unit of input is still a positive ratio.
+            return abs(output) / input
 
         return 0
 
