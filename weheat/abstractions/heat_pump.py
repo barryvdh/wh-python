@@ -29,6 +29,17 @@ class HeatPump:
         DEFROSTING = auto()
         SELF_TEST = auto()
         MANUAL_CONTROL = auto()
+        UPDATING = auto()
+
+    class CoolingState(Enum):
+        IDLE = 130
+        STARTING = 131
+        ACTIVE = 132
+        STOPPING = 133
+        STANDBY = 134
+        PAUSING = 135
+        WATER_CHECK = 136
+        STANDBY_RUN_CP = 137
 
     class CoolingPauseReason(Enum):
         NONE = 0
@@ -63,8 +74,9 @@ class HeatPump:
         CONTACT_SWITCH_OVER = 6
         THERMOSTAT_DISABLED = 7
 
-    # The numeric states the heat pump reports while defrosting.
+    # The numeric states the heat pump reports while cooling, and while defrosting.
     DEFROST_STATES = frozenset({84, 90, 100, 110, 120, *range(200, 240)})
+    COOLING_STATES = frozenset(state.value for state in CoolingState)
 
     # Bit masks of the conditions that must all be met before cooling can start.
     COOLING_START_CONDITION_BITS = {
@@ -328,7 +340,9 @@ class HeatPump:
             return self.State.STANDBY
         elif numeric_state == 70:
             return self.State.HEATING
-        elif numeric_state >= 130 and numeric_state < 140:
+        elif numeric_state == self.CoolingState.WATER_CHECK.value:
+            return self.State.WATER_CHECK
+        elif numeric_state in self.COOLING_STATES:
             return self.State.COOLING
         elif numeric_state == 150:
             return self.State.DHW
@@ -338,6 +352,8 @@ class HeatPump:
             return self.State.SELF_TEST
         elif numeric_state == 180:
             return self.State.MANUAL_CONTROL
+        elif numeric_state == 1010:
+            return self.State.UPDATING
         elif numeric_state in self.DEFROST_STATES:
             return self.State.DEFROSTING
         return None
@@ -361,6 +377,17 @@ class HeatPump:
             return self.ControlMethod(value)
         except ValueError:
             # The backend may report methods this version does not know about yet.
+            return None
+
+    @property
+    def cooling_state(self) -> Union["HeatPump.CoolingState", None]:
+        """The cooling sub state, only set while the heat pump is in a cooling state."""
+        value = self._if_available("state")
+        if value is None:
+            return None
+        try:
+            return self.CoolingState(value)
+        except ValueError:
             return None
 
     @property
