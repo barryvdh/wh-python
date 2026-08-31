@@ -63,6 +63,9 @@ class HeatPump:
         CONTACT_SWITCH_OVER = 6
         THERMOSTAT_DISABLED = 7
 
+    # The numeric states the heat pump reports while defrosting.
+    DEFROST_STATES = frozenset({84, 90, 100, 110, 120, *range(200, 240)})
+
     # Bit masks of the conditions that must all be met before cooling can start.
     COOLING_START_CONDITION_BITS = {
         "control_method": 1,
@@ -335,7 +338,7 @@ class HeatPump:
             return self.State.SELF_TEST
         elif numeric_state == 180:
             return self.State.MANUAL_CONTROL
-        elif numeric_state >= 200 and numeric_state <= 240:
+        elif numeric_state in self.DEFROST_STATES:
             return self.State.DEFROSTING
         return None
 
