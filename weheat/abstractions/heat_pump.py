@@ -41,6 +41,21 @@ class HeatPump:
         WATER_CHECK = 136
         STANDBY_RUN_CP = 137
 
+    class CoolingStatus(Enum):
+        """What the heat pump is doing about cooling, or why it is not cooling."""
+
+        IDLE = auto()
+        STARTING = auto()
+        ACTIVE = auto()
+        STOPPING = auto()
+        STANDBY = auto()
+        PAUSING = auto()
+        WATER_CHECK = auto()
+        STANDBY_RUN_CP = auto()
+        PAUSED = auto()
+        STOPPED = auto()
+        WAITING = auto()
+
     class CoolingPauseReason(Enum):
         NONE = 0
         ROOM_TEMPERATURE_TOO_LOW = 1
@@ -389,6 +404,26 @@ class HeatPump:
             return self.CoolingState(value)
         except ValueError:
             return None
+
+    @property
+    def cooling_status(self) -> Union["HeatPump.CoolingStatus", None]:
+        """What the heat pump is doing about cooling, or why it is not cooling.
+
+        The heat pump only reports a cooling state during a cooling cycle, so
+        outside one this reports whether cooling is paused, stopped, or waiting
+        for its start conditions. None when the heat pump does not do cooling.
+        """
+        cooling_state = self.cooling_state
+        if cooling_state is not None:
+            return self.CoolingStatus[cooling_state.name]
+        if self._if_available("cooling_pause_reason") is None:
+            return None
+        if self.heat_pump_state is self.State.STANDBY:
+            if self.cooling_pause_reason not in (None, self.CoolingPauseReason.NONE):
+                return self.CoolingStatus.PAUSED
+            if self.cooling_stop_reason not in (None, self.CoolingStopReason.NONE):
+                return self.CoolingStatus.STOPPED
+        return self.CoolingStatus.WAITING
 
     @property
     def cooling_pause_reason(self) -> Union["HeatPump.CoolingPauseReason", None]:
