@@ -77,7 +77,6 @@ class HeatPump:
         MANUAL_POWER = 6
         AUTO_INPUT_SELECT = 7
         MANUAL_SETPOINT = 8
-        WEHEAT_INTELLIGENCE = 9
 
     class CoolingStopReason(Enum):
         NONE = 0
