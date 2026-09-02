@@ -1,0 +1,20 @@
+{
+  "totalEInHeating": 5717.358,
+  "totalEInStandby": 103.82725,
+  "totalEInDhw": 2143.2793,
+  "totalEInHeatingDefrost": 36.181,
+  "totalEInDhwDefrost": 0.045924444,
+  "totalEInCooling": 832.4635,
+  "totalEOutHeating": 27152.229,
+  "totalEOutDhw": 6509.1094,
+  "totalEOutHeatingDefrost": -799.50616,
+  "totalEOutDhwDefrost": -1.0773816,
+  "totalEOutCooling": -4438.936,
+  "totalEInIUStandby": 245.75871,
+  "totalEInIUHeating": 426.02554,
+  "totalEInIUDhw": 252.08315,
+  "totalEInIUHeatingDefrost": 22.127708,
+  "totalEInIUDhwDefrost": 0.038020276,
+  "totalEInIUCooling": 95.72314,
+  "heatPumpId": "00000000-0000-4000-8000-000000000000"
+}

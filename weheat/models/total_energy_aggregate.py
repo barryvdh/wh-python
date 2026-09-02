@@ -42,7 +42,13 @@ class TotalEnergyAggregate(BaseModel):
     total_e_out_heating_defrost: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, alias="totalEOutHeatingDefrost")
     total_e_out_dhw_defrost: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, alias="totalEOutDhwDefrost")
     total_e_out_cooling: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, alias="totalEOutCooling")
-    __properties: ClassVar[List[str]] = ["heatPumpId", "totalEInHeating", "totalEInStandby", "totalEInDhw", "totalEInHeatingDefrost", "totalEInDhwDefrost", "totalEInCooling", "totalEOutHeating", "totalEOutDhw", "totalEOutHeatingDefrost", "totalEOutDhwDefrost", "totalEOutCooling",]
+    total_ein_iu_standby: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, alias="totalEInIUStandby")
+    total_ein_iu_heating: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, alias="totalEInIUHeating")
+    total_ein_iu_dhw: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, alias="totalEInIUDhw")
+    total_ein_iu_heating_defrost: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, alias="totalEInIUHeatingDefrost")
+    total_ein_iu_dhw_defrost: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, alias="totalEInIUDhwDefrost")
+    total_ein_iu_cooling: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, alias="totalEInIUCooling")
+    __properties: ClassVar[List[str]] = ["heatPumpId", "totalEInHeating", "totalEInStandby", "totalEInDhw", "totalEInHeatingDefrost", "totalEInDhwDefrost", "totalEInCooling", "totalEOutHeating", "totalEOutDhw", "totalEOutHeatingDefrost", "totalEOutDhwDefrost", "totalEOutCooling", "totalEInIUStandby", "totalEInIUHeating", "totalEInIUDhw", "totalEInIUHeatingDefrost", "totalEInIUDhwDefrost", "totalEInIUCooling",]
 
     model_config = {
         "populate_by_name": True,
@@ -104,7 +110,13 @@ class TotalEnergyAggregate(BaseModel):
             "totalEOutDhw": obj.get("totalEOutDhw"),
             "totalEOutHeatingDefrost": obj.get("totalEOutHeatingDefrost"),
             "totalEOutDhwDefrost": obj.get("totalEOutDhwDefrost"),
-            "totalEOutCooling": obj.get("totalEOutCooling")
+            "totalEOutCooling": obj.get("totalEOutCooling"),
+            "totalEInIUStandby": obj.get("totalEInIUStandby"),
+            "totalEInIUHeating": obj.get("totalEInIUHeating"),
+            "totalEInIUDhw": obj.get("totalEInIUDhw"),
+            "totalEInIUHeatingDefrost": obj.get("totalEInIUHeatingDefrost"),
+            "totalEInIUDhwDefrost": obj.get("totalEInIUDhwDefrost"),
+            "totalEInIUCooling": obj.get("totalEInIUCooling")
         })
         return _obj
 
