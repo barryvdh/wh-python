@@ -49,24 +49,43 @@ def test_heat_pump_state(state, expected):
 @pytest.mark.parametrize(
     ("fields", "expected"),
     [
-        ({"state": 132, "cooling_pause_reason": 0}, HeatPump.CoolingStatus.ACTIVE),
-        ({"state": 131, "cooling_pause_reason": 0}, HeatPump.CoolingStatus.STARTING),
-        ({"state": 136, "cooling_pause_reason": 0}, HeatPump.CoolingStatus.WATER_CHECK),
-        ({"state": 40, "cooling_pause_reason": 0}, HeatPump.CoolingStatus.WAITING),
-        ({"state": 40, "cooling_pause_reason": 4}, HeatPump.CoolingStatus.PAUSED),
+        ({"state": 132, "cooling_pause_reason": 0}, HeatPump.CoolingActivity.ACTIVE),
+        ({"state": 131, "cooling_pause_reason": 0}, HeatPump.CoolingActivity.STARTING),
+        ({"state": 136, "cooling_pause_reason": 0}, HeatPump.CoolingActivity.WATER_CHECK),
+        ({"state": 40, "cooling_pause_reason": 0}, HeatPump.CoolingActivity.WAITING),
+        ({"state": 40, "cooling_pause_reason": 4}, HeatPump.CoolingActivity.PAUSED),
         (
             {"state": 40, "cooling_pause_reason": 0, "cooling_stop_reason": 1},
-            HeatPump.CoolingStatus.STOPPED,
+            HeatPump.CoolingActivity.STOPPED,
         ),
         # a pause reason only counts while the heat pump is in standby
-        ({"state": 70, "cooling_pause_reason": 4}, HeatPump.CoolingStatus.WAITING),
+        ({"state": 70, "cooling_pause_reason": 4}, HeatPump.CoolingActivity.WAITING),
         # a heat pump that does not do cooling reports no cooling fields at all
         ({"state": 70}, None),
     ],
 )
-def test_cooling_status(fields, expected):
+def test_cooling_activity(fields, expected):
     """Test the cooling status says what the heat pump is doing, or why it is not."""
-    assert heat_pump(**fields).cooling_status is expected
+    assert heat_pump(**fields).cooling_activity is expected
+
+
+@pytest.mark.parametrize(
+    ("status", "expected"),
+    [
+        (0, HeatPump.CoolingStatus.IDLE),
+        (2, HeatPump.CoolingStatus.ACTIVE),
+        (4, HeatPump.CoolingStatus.STANDBY),
+        (99, None),
+    ],
+)
+def test_cooling_status(status, expected):
+    """Test the cooling status the heat pump reports in its log."""
+    assert heat_pump(cooling_status=status).cooling_status is expected
+
+
+def test_cooling_status_when_not_reported():
+    """Test a heat pump that does not report a cooling status decodes to nothing."""
+    assert heat_pump(state=40).cooling_status is None
 
 
 def test_cooling_start_conditions():

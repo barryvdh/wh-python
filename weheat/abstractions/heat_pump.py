@@ -41,7 +41,7 @@ class HeatPump:
         WATER_CHECK = 136
         STANDBY_RUN_CP = 137
 
-    class CoolingStatus(Enum):
+    class CoolingActivity(Enum):
         """What the heat pump is doing about cooling, or why it is not cooling."""
 
         IDLE = auto()
@@ -55,6 +55,15 @@ class HeatPump:
         PAUSED = auto()
         STOPPED = auto()
         WAITING = auto()
+
+    class CoolingStatus(Enum):
+        """The cooling status the heat pump reports in its log."""
+
+        IDLE = 0
+        STARTING = 1
+        ACTIVE = 2
+        STOPPING = 3
+        STANDBY = 4
 
     class CoolingPauseReason(Enum):
         NONE = 0
@@ -406,6 +415,18 @@ class HeatPump:
 
     @property
     def cooling_status(self) -> Union["HeatPump.CoolingStatus", None]:
+        """The cooling status the heat pump reports, if it reports one."""
+        value = self._if_available("cooling_status")
+        if value is None:
+            return None
+        try:
+            return self.CoolingStatus(value)
+        except ValueError:
+            # The backend may report a status this version does not know about yet.
+            return None
+
+    @property
+    def cooling_activity(self) -> Union["HeatPump.CoolingActivity", None]:
         """What the heat pump is doing about cooling, or why it is not cooling.
 
         The heat pump only reports a cooling state during a cooling cycle, so
@@ -414,15 +435,15 @@ class HeatPump:
         """
         cooling_state = self.cooling_state
         if cooling_state is not None:
-            return self.CoolingStatus[cooling_state.name]
+            return self.CoolingActivity[cooling_state.name]
         if self._if_available("cooling_pause_reason") is None:
             return None
         if self.heat_pump_state is self.State.STANDBY:
             if self.cooling_pause_reason not in (None, self.CoolingPauseReason.NONE):
-                return self.CoolingStatus.PAUSED
+                return self.CoolingActivity.PAUSED
             if self.cooling_stop_reason not in (None, self.CoolingStopReason.NONE):
-                return self.CoolingStatus.STOPPED
-        return self.CoolingStatus.WAITING
+                return self.CoolingActivity.STOPPED
+        return self.CoolingActivity.WAITING
 
     @property
     def cooling_pause_reason(self) -> Union["HeatPump.CoolingPauseReason", None]:
