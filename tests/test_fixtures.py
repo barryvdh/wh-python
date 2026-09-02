@@ -68,6 +68,7 @@ def test_cooling_log():
     assert pump.cooling_activity is HeatPump.CoolingActivity.ACTIVE
     assert pump.is_online is True
     assert pump.dhw_target_temperature == 55
+    assert pump.dhw_control_method is HeatPump.DhwControlMethod.FIXED
     # heat is removed from the water while cooling, so the output power is negative
     assert pump.power_output == -2671
     assert pump.cop == pytest.approx(5.126, abs=0.001)

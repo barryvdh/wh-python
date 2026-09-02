@@ -164,3 +164,22 @@ def test_no_code_is_reported_when_the_field_is_absent():
 
     assert pump.cooling_pause_reason_code is None
     assert pump.heat_pump_state_code == 40
+
+
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
+        (0, HeatPump.DhwControlMethod.NONE),
+        (1, HeatPump.DhwControlMethod.FIXED),
+        (2, HeatPump.DhwControlMethod.SCHEDULE),
+        (3, HeatPump.DhwControlMethod.WEHEAT_INTELLIGENCE),
+        (4, HeatPump.DhwControlMethod.BOOST),
+        (99, None),
+    ],
+)
+def test_dhw_control_method(code, expected):
+    """Test the control method the DHW vessel runs on."""
+    pump = heat_pump(dhw_control_method=code)
+
+    assert pump.dhw_control_method is expected
+    assert pump.dhw_control_method_code == code

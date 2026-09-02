@@ -31,6 +31,19 @@ class HeatPump:
         MANUAL_CONTROL = auto()
         UPDATING = auto()
 
+    class DhwControlMethod(Enum):
+        """The control method the heat pump reports for the DHW vessel.
+
+        The portal has an enum of the same name for the installation setting,
+        which numbers its values differently. This is the one the log uses.
+        """
+
+        NONE = 0
+        FIXED = 1
+        SCHEDULE = 2
+        WEHEAT_INTELLIGENCE = 3
+        BOOST = 4
+
     class CoolingState(Enum):
         IDLE = 130
         STARTING = 131
@@ -217,6 +230,11 @@ class HeatPump:
     def current_control_method_code(self) -> Union[int, None]:
         """The raw control method the heat pump reports, named by current_control_method."""
         return self._if_available("current_control_method")
+
+    @property
+    def dhw_control_method_code(self) -> Union[int, None]:
+        """The raw DHW control method, named by dhw_control_method."""
+        return self._if_available("dhw_control_method")
 
     @property
     def cooling_pause_reason_code(self) -> Union[int, None]:
@@ -418,6 +436,18 @@ class HeatPump:
             return None
         try:
             return self.ControlMethod(value)
+        except ValueError:
+            # The backend may report methods this version does not know about yet.
+            return None
+
+    @property
+    def dhw_control_method(self) -> Union["HeatPump.DhwControlMethod", None]:
+        """The control method the DHW vessel is running on."""
+        value = self.dhw_control_method_code
+        if value is None:
+            return None
+        try:
+            return self.DhwControlMethod(value)
         except ValueError:
             # The backend may report methods this version does not know about yet.
             return None
