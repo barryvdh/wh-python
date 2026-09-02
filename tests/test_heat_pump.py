@@ -119,18 +119,45 @@ def test_cop(power_in, power_out, expected):
     assert pump.cop == expected
 
 
+# the exponential back off condition is bit 512, so clearing it leaves the heat
+# pump waiting on the delay, and setting it means the wait is over
+WAITING = 2047 - 512
+NOT_WAITING = 2047
+
+
 def test_cooling_available_from():
     """Test the restart delay is counted from the last cooling cycle."""
     pump = heat_pump(
-        last_cooling_time="2026-08-31T09:00:00+00:00", cooling_exponential_backoff=180
+        last_cooling_time="2026-08-31T09:00:00+00:00",
+        cooling_exponential_backoff=180,
+        cooling_start_conditions=WAITING,
     )
 
     assert pump.cooling_available_from.isoformat() == "2026-08-31T12:00:00+00:00"
 
 
+def test_cooling_available_from_once_the_delay_has_passed():
+    """Test no moment is reported once the heat pump is no longer waiting.
+
+    Otherwise this would report a moment that has already gone by, for as long
+    as the heat pump keeps reporting the same last cooling cycle.
+    """
+    pump = heat_pump(
+        last_cooling_time="2026-08-31T09:00:00+00:00",
+        cooling_exponential_backoff=180,
+        cooling_start_conditions=NOT_WAITING,
+    )
+
+    assert pump.cooling_available_from is None
+
+
 def test_cooling_available_from_before_any_cooling():
     """Test there is no restart delay before the heat pump has ever cooled."""
-    assert heat_pump(cooling_exponential_backoff=180).cooling_available_from is None
+    pump = heat_pump(
+        cooling_exponential_backoff=180, cooling_start_conditions=WAITING
+    )
+
+    assert pump.cooling_available_from is None
 
 
 @pytest.mark.parametrize("code", [99, -1])

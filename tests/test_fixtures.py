@@ -75,8 +75,9 @@ def test_cooling_log():
     # every start condition is met except the demand for cooling
     assert pump.cooling_start_conditions["demand"] is False
     assert pump.cooling_pause_reason is HeatPump.CoolingPauseReason.WATER_TEMPERATURE_BELOW_SETPOINT
-    # the restart delay is counted in minutes from the last cooling cycle
-    assert pump.cooling_available_from.isoformat() == "2026-08-29T11:32:28+00:00"
+    # the heat pump reports it is not waiting on the restart delay any more
+    assert pump.cooling_start_conditions["exponential_backoff"] is True
+    assert pump.cooling_available_from is None
 
 
 def test_standby_log():

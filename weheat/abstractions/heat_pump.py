@@ -526,7 +526,15 @@ class HeatPump:
 
     @property
     def cooling_available_from(self) -> Union[datetime, None]:
-        """The moment the wait time after the last cooling cycle expires."""
+        """The moment the wait after the last cooling cycle ends, while it is waiting.
+
+        None when the heat pump reports it is not waiting on the delay, which is
+        the case while it cools and once enough time has passed since it last did,
+        so this does not report a moment that has already gone by.
+        """
+        conditions = self.cooling_start_conditions
+        if conditions is None or conditions["exponential_backoff"]:
+            return None
         last_cooling_time = self.last_cooling_time
         if last_cooling_time is None:
             return None
