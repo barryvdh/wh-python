@@ -11,6 +11,7 @@ import pytest
 
 from weheat.abstractions.heat_pump import HeatPump
 from weheat.models import TotalEnergyAggregate
+from weheat.models.heat_pump_log_view_dto import HeatPumpLogViewDto
 from weheat.models.raw_heatpump_log_and_is_online_dto import RawHeatpumpLogAndIsOnlineDto
 from weheat.models.read_all_heat_pump_dto_paged_response import ReadAllHeatPumpDtoPagedResponse
 from weheat.models.read_heat_pump_dto import ReadHeatPumpDto
@@ -105,3 +106,33 @@ def test_energy_total():
     assert pump.energy_total == pytest.approx(
         5717.358 + 2143.2793 + 832.4635 + 103.82725 + 36.181 + 0.045924444
     )
+
+
+@pytest.mark.parametrize(
+    "name", ["log_aggregated_cooling.json", "log_aggregated_dhw.json"]
+)
+@pytest.mark.xfail(
+    strict=True,
+    reason="the aggregated log model predates the cooling and DHW fields, so it "
+    "drops all of them; regenerating the models from the spec fixes this",
+)
+def test_no_field_is_dropped_from_the_aggregated_log(name):
+    """Test the aggregated log model keeps every field the backend sent."""
+    payload = load(name)
+
+    assert not dropped_fields(payload, HeatPumpLogViewDto.from_dict(payload).to_dict())
+
+
+def test_cooling_is_stopped_when_dhw_takes_over():
+    """Test the recorded buckets show what stops a cooling cycle.
+
+    The stop reason turns to HeatPumpControl exactly when the heat pump switches
+    to DHW, which is what that reason means: another function took priority.
+    """
+    cooling = load("log_aggregated_cooling.json")
+    dhw = load("log_aggregated_dhw.json")
+
+    assert cooling["heatPumpStateCooling"] == 60
+    assert cooling["coolingStopReasonNone"] == 60
+    assert dhw["heatPumpStateDhw"] == 60
+    assert dhw["coolingStopReasonHeatPumpControl"] == 60
