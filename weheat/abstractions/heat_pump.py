@@ -209,6 +209,26 @@ class HeatPump:
         return self.__str__()
 
     @property
+    def heat_pump_state_code(self) -> Union[int, None]:
+        """The raw state the heat pump reports, named by heat_pump_state."""
+        return self._if_available("state")
+
+    @property
+    def current_control_method_code(self) -> Union[int, None]:
+        """The raw control method the heat pump reports, named by current_control_method."""
+        return self._if_available("current_control_method")
+
+    @property
+    def cooling_pause_reason_code(self) -> Union[int, None]:
+        """The raw pause reason the heat pump reports, named by cooling_pause_reason."""
+        return self._if_available("cooling_pause_reason")
+
+    @property
+    def cooling_stop_reason_code(self) -> Union[int, None]:
+        """The raw stop reason the heat pump reports, named by cooling_stop_reason."""
+        return self._if_available("cooling_stop_reason")
+
+    @property
     def raw_content(self) -> Optional[dict]:
         raw = {}
         if self._last_log:

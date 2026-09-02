@@ -140,3 +140,27 @@ def test_unknown_codes_decode_to_nothing(code):
 
     assert pump.cooling_pause_reason is None
     assert pump.cooling_stop_reason is None
+
+
+@pytest.mark.parametrize(
+    ("code", "expected_name"),
+    [(4, HeatPump.CoolingPauseReason.WATER_TEMPERATURE_BELOW_SETPOINT), (99, None)],
+)
+def test_a_code_is_reported_even_when_it_cannot_be_named(code, expected_name):
+    """Test the code is reported whether or not this version can name it.
+
+    That is what lets a consumer tell a heat pump reporting an unknown value
+    apart from one not reporting the value at all.
+    """
+    pump = heat_pump(cooling_pause_reason=code)
+
+    assert pump.cooling_pause_reason_code == code
+    assert pump.cooling_pause_reason is expected_name
+
+
+def test_no_code_is_reported_when_the_field_is_absent():
+    """Test a heat pump that does not report the field reports no code either."""
+    pump = heat_pump(state=40)
+
+    assert pump.cooling_pause_reason_code is None
+    assert pump.heat_pump_state_code == 40
