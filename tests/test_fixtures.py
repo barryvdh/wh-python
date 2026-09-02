@@ -109,7 +109,12 @@ def test_energy_total():
 
 
 @pytest.mark.parametrize(
-    "name", ["log_aggregated_cooling.json", "log_aggregated_dhw.json"]
+    "name",
+    [
+        "log_aggregated_cooling.json",
+        "log_aggregated_dhw.json",
+        "log_aggregated_heating_old_firmware.json",
+    ],
 )
 @pytest.mark.xfail(
     strict=True,
@@ -136,3 +141,35 @@ def test_cooling_is_stopped_when_dhw_takes_over():
     assert cooling["coolingStopReasonNone"] == 60
     assert dhw["heatPumpStateDhw"] == 60
     assert dhw["coolingStopReasonHeatPumpControl"] == 60
+
+
+def test_older_firmware_reports_the_cooling_fields_as_null():
+    """Test the backend sends the cooling fields even for firmware that predates them.
+
+    The fields are present and null rather than missing, which is what lets a
+    consumer tell "this heat pump does not report cooling" from "this response
+    is from before cooling existed": both look the same, and both mean no cooling.
+    """
+    payload = load("log_aggregated_heating_old_firmware.json")
+    current = load("log_aggregated_cooling.json")
+
+    assert set(payload) == set(current)
+    assert payload["hqMessageVersionMin"] is None
+    assert current["hqMessageVersionMin"] == 1
+    assert all(
+        payload[key] is None for key in payload if key.startswith("coolingStartConditions")
+    )
+
+
+def test_a_heat_pump_without_the_cooling_fields_reports_no_cooling():
+    """Test a log from firmware without cooling decodes to no cooling at all."""
+    pump = HeatPump("https://example.invalid", "heat-pump")
+    pump._last_log = RawHeatpumpLogAndIsOnlineDto.model_validate(
+        {"heat_pump_id": "heat-pump", "timestamp": "2026-01-01T18:30:00+00:00",
+         "interval": 15, "state": 70}
+    )
+
+    assert pump.heat_pump_state is HeatPump.State.HEATING
+    assert pump.cooling_activity is None
+    assert pump.cooling_start_conditions is None
+    assert pump.cooling_available_from is None
