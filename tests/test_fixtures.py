@@ -106,6 +106,11 @@ def test_energy_total():
     assert pump.energy_total == pytest.approx(
         5717.358 + 2143.2793 + 832.4635 + 103.82725 + 36.181 + 0.045924444
     )
+    # the indoor unit is metered separately, and is not part of that total
+    assert pump.energy_in_indoor_unit == pytest.approx(
+        426.02554 + 252.08315 + 95.72314 + 245.75871 + 22.127708 + 0.038020276
+    )
+    assert pump.energy_in_indoor_unit < pump.energy_total
 
 
 @pytest.mark.parametrize(

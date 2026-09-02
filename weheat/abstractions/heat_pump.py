@@ -627,13 +627,29 @@ class HeatPump:
 
     @property
     def energy_total(self) -> Union[float, None]:
-        """The total used (electrical) energy in kWh."""
+        """The total used (electrical) energy of the outdoor unit in kWh.
+
+        This does not include the indoor unit, which the heat pump meters
+        separately and reports through energy_in_indoor_unit.
+        """
         if self._energy_total is None:
             return None
         return float(
             self._energy_total.total_ein_heating + self._energy_total.total_ein_dhw + 
             self._energy_total.total_ein_cooling + self._energy_total.total_ein_standby +
             self._energy_total.total_ein_heating_defrost + self._energy_total.total_ein_dhw_defrost
+        )
+
+    @property
+    def energy_in_indoor_unit(self) -> Union[float, None]:
+        """The total used (electrical) energy of the indoor unit in kWh."""
+        if self._energy_total is None:
+            return None
+        return float(
+            self._energy_total.total_ein_iu_heating + self._energy_total.total_ein_iu_dhw +
+            self._energy_total.total_ein_iu_cooling + self._energy_total.total_ein_iu_standby +
+            self._energy_total.total_ein_iu_heating_defrost +
+            self._energy_total.total_ein_iu_dhw_defrost
         )
 
     @property
