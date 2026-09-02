@@ -104,19 +104,35 @@ def test_cooling_start_conditions_without_a_log():
 
 
 @pytest.mark.parametrize(
-    ("power_in", "power_out", "expected"),
+    ("state", "power_in", "power_out", "expected"),
     [
-        (500, 2000, 4.0),
-        # while cooling the output power is negative, the ratio stays positive
-        (521, -2671, pytest.approx(5.126, abs=0.001)),
-        (0, 2000, 0),
+        # heat into the water is what heating is for, so the ratio is positive
+        (70, 500, 2000, 4.0),
+        (150, 500, 2000, 4.0),
+        # heat out of the water is what cooling is for, so that is positive too
+        (132, 521, -2671, pytest.approx(5.126, abs=0.001)),
+        # only cooling itself flips: defrosting and the water check take heat out
+        # of the water too, but not as the point, so they stay negative
+        (90, 500, -1000, -2.0),
+        (136, 500, -1000, -2.0),
+        # heat moving the wrong way for the state stays visible as a negative
+        # ratio, rather than reading as a good one
+        (132, 690, 7404, pytest.approx(-10.73, abs=0.01)),
+        (70, 500, -500, -1.0),
+        # without a state there is no way to tell, so report what was measured
+        (None, 500, -500, -1.0),
     ],
 )
-def test_cop(power_in, power_out, expected):
-    """Test the coefficient of performance is a positive ratio in every state."""
-    pump = heat_pump(cm_mass_power_in=power_in, cm_mass_power_out=power_out)
+def test_cop(state, power_in, power_out, expected):
+    """Test the coefficient of performance follows the state it was measured in."""
+    pump = heat_pump(state=state, cm_mass_power_in=power_in, cm_mass_power_out=power_out)
 
     assert pump.cop == expected
+
+
+def test_cop_without_input_power():
+    """Test nothing is drawn, so nothing is moved per unit drawn."""
+    assert heat_pump(state=40, cm_mass_power_in=0, cm_mass_power_out=0).cop == 0
 
 
 def test_cooling_available_from():
