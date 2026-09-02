@@ -84,7 +84,13 @@ async def test_hp_log(api_fixture, uuid):
     if heatpump.thermostat_room_temperature is not None:  #thermostat may be disconnected
         assert heatpump.thermostat_room_temperature >= -1
     assert heatpump.power_input is None or heatpump.power_input >= 0
-    assert heatpump.power_output is None or heatpump.power_output >= 0
+    if heatpump.heat_pump_state in (HeatPump.State.COOLING, HeatPump.State.DEFROSTING):
+        # heat is removed from the water in these states, so the output power is negative
+        assert heatpump.power_output is None or heatpump.power_output <= 0
+    else:
+        assert heatpump.power_output is None or heatpump.power_output >= 0
+    # the coefficient of performance is a positive ratio in every state
+    assert heatpump.cop is None or heatpump.cop >= 0
     assert heatpump.compressor_rpm >= 0
     assert heatpump.heat_pump_state in HeatPump.State
     assert heatpump.energy_in_heating >= 0

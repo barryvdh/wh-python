@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "weheat"
-version = "2026.4.8"
+version = "2026.9.2"
 description = "Weheat Backend"
 authors = ["Jesper Raemaekers <jesper.raemaekers@wefabricate.com>", "Kjell van Straaten <kjell.van.straaten@wefabricate.com>"]
 license = "MIT"
@@ -10,7 +10,7 @@ keywords = ["OpenAPI", "OpenAPI-Generator", "Weheat Backend"]
 include = ["weheat/py.typed"]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.10"
 
 urllib3 = ">= 1.25.3"
 python-dateutil = ">=2.8.2"

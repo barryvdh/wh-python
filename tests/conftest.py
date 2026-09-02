@@ -1,6 +1,5 @@
 import pytest
 from dataclasses import dataclass
-from keycloak import KeycloakOpenID
 
 def pytest_addoption(parser):
     # These are used by the STK500 interface
@@ -10,42 +9,42 @@ def pytest_addoption(parser):
         action="store",
         type=str,
         help="API url",
-        required=True,
+        default=None,
     )
     parser.addoption(
         "--auth_url",
         action="store",
         type=str,
         help="Authentication url",
-        required=True,
+        default=None,
     )
     parser.addoption(
         "--client_id",
         action="store",
         type=str,
         help="Client id",
-        required=True,
+        default=None,
     )
     parser.addoption(
         "--client_secret",
         action="store",
         type=str,
         help="Client secret",
-        required=True,
+        default=None,
     )
     parser.addoption(
         "--user",
         action="store",
         type=str,
         help="User email",
-        required=True,
+        default=None,
     )
     parser.addoption(
         "--password",
         action="store",
         type=str,
         help="User password",
-        required=True,
+        default=None,
     )
 
 
@@ -63,8 +62,17 @@ class ApiInfo:
     access_token: str
 
 
+OPTIONS = ("api_url", "auth_url", "client_id", "client_secret", "user", "password")
+
+
 @pytest.fixture()
 def api_fixture(request):
+    missing = [name for name in OPTIONS if not request.config.getoption(f"--{name}")]
+    if missing:
+        pytest.skip(f"needs the API options: {', '.join('--' + name for name in missing)}")
+
+    from keycloak import KeycloakOpenID
+
     api_info = ApiInfo(request.config.getoption('--api_url'), request.config.getoption('--auth_url'),
                        request.config.getoption('--client_id'), request.config.getoption('--client_secret'),
                        request.config.getoption('--user'), request.config.getoption('--password'), "")
