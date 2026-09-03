@@ -247,18 +247,23 @@ class HeatPump:
         return self._if_available("cooling_stop_reason")
 
     def _energy_sum(self, *fields: str) -> Union[float, None]:
-        """Sum the named energy counters, or None if any of them is missing.
+        """Sum the named energy counters, skipping any the backend leaves out.
 
-        Every counter is optional in the API, so one the backend leaves out would
-        otherwise raise while adding it up. A partial sum is worse than nothing
-        here, since consumers track these as totals that only ever rise.
+        Every counter is optional in the API, so adding them up directly would
+        raise on a heat pump that does not report one. A heat pump that cannot
+        cool has no cooling energy to report, and its other energy still adds up,
+        so a counter that is not there counts as nothing.
+
+        None when the heat pump reports none of them, so that a total there is
+        nothing behind does not read as zero.
         """
         if self._energy_total is None:
             return None
         values = [getattr(self._energy_total, field) for field in fields]
-        if any(value is None for value in values):
+        reported = [value for value in values if value is not None]
+        if not reported:
             return None
-        return float(sum(values))
+        return float(sum(reported))
 
     @property
     def raw_content(self) -> Optional[dict]:

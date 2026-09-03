@@ -234,15 +234,37 @@ def test_energy_totals_add_up():
     assert pump.energy_output == 6 + 7 - 1 - 2 + 3
 
 
-@pytest.mark.parametrize("missing", list(ENERGY))
-def test_a_missing_counter_is_not_added_up(missing):
-    """Test a counter the backend leaves out gives no total rather than raising.
+def test_a_heat_pump_that_cannot_cool_still_totals_its_other_energy():
+    """Test a counter the heat pump does not report counts as nothing.
 
-    Every counter is optional in the API, and adding None used to raise, which
-    took down everything reading any of these totals.
+    Adding the counters up directly used to raise, which took down everything
+    reading any of these totals.
     """
+    pump = energy(totalEInCooling=None, totalEInIUCooling=None)
+
+    assert pump.energy_total == 100 + 1 + 2 + 3 + 4
+    assert pump.energy_in_indoor_unit == 10 + 11 + 12 + 13 + 14
+
+
+@pytest.mark.parametrize("missing", list(ENERGY))
+def test_a_missing_counter_never_raises(missing):
+    """Test no total raises whichever counter the backend leaves out."""
     pump = energy(**{missing: None})
 
     for name in SUMMED:
         getattr(pump, name)
-    assert any(getattr(pump, name) is None for name in SUMMED)
+
+
+def test_a_counter_that_is_not_reported_at_all_gives_no_total():
+    """Test a total with nothing behind it reports nothing rather than zero."""
+    pump = energy(totalEInCooling=None)
+
+    assert pump.energy_in_cooling is None
+
+
+def test_no_totals_at_all_give_nothing():
+    """Test a heat pump that reports no energy at all reports no totals."""
+    pump = HeatPump("https://example.invalid", "0000-1111-2222-3333")
+
+    assert pump.energy_total is None
+    assert pump.energy_in_indoor_unit is None
