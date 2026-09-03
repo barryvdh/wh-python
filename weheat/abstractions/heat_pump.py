@@ -343,12 +343,23 @@ class HeatPump:
         if input is None or output is None:
             return None
 
-        if input > 0:
-            # While cooling or defrosting the output power is negative, as heat is removed from
-            # the water. The amount of energy moved per unit of input is still a positive ratio.
-            return abs(output) / input
+        if input <= 0:
+            return 0
 
-        return 0
+        state = self.heat_pump_state
+        if state is None:
+            # Without a known state there is no telling which way the heat is meant
+            # to go, so report the ratio as measured.
+            return output / input
+
+        # Cooling is the one state where taking heat out of the water is the
+        # point, so only there does a negative output power give a positive
+        # ratio. Correcting the sign per state rather than taking the absolute
+        # value keeps heat that moves the wrong way visible as a negative ratio,
+        # which happens at the start of a cooling cycle. Defrosting takes heat
+        # out of the water as well, but as a cost rather than the point, so it
+        # is left to read as the loss it is.
+        return (-1 if state is self.State.COOLING else 1) * output / input
 
     @property
     def indoor_unit_water_pump_state(self) -> Union[bool, None]:
