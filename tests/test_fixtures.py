@@ -34,6 +34,9 @@ def dropped_fields(payload: dict, decoded: dict) -> set:
     [
         ("log_latest_cooling.json", RawHeatpumpLogAndIsOnlineDto),
         ("log_latest_standby.json", RawHeatpumpLogAndIsOnlineDto),
+        ("log_latest_cooling_active.json", RawHeatpumpLogAndIsOnlineDto),
+        ("log_latest_cooling_stalled.json", RawHeatpumpLogAndIsOnlineDto),
+        ("log_latest_dhw_method_none.json", RawHeatpumpLogAndIsOnlineDto),
         ("energy_total.json", TotalEnergyAggregate),
         ("heat_pump.json", ReadHeatPumpDto),
     ],
@@ -179,3 +182,64 @@ def test_a_heat_pump_without_the_cooling_fields_reports_no_cooling():
     assert pump.cooling_activity is None
     assert pump.cooling_start_conditions is None
     assert pump.cooling_available_from is None
+
+
+def test_a_stalled_cooling_run_decodes_the_same_as_a_working_one():
+    """Test nothing the heat pump reports about its state tells a stall apart.
+
+    Both records are recorded from the same pump two hours into a cooling run,
+    one turning and one stalled. Every state, reason and condition matches; only
+    the measurements differ, so a consumer has to look at those to see a stall.
+    """
+    working = HeatPump("https://example.invalid", "heat-pump")
+    working._last_log = RawHeatpumpLogAndIsOnlineDto.from_dict(
+        load("log_latest_cooling_active.json")
+    )
+    stalled = HeatPump("https://example.invalid", "heat-pump")
+    stalled._last_log = RawHeatpumpLogAndIsOnlineDto.from_dict(
+        load("log_latest_cooling_stalled.json")
+    )
+
+    for name in (
+        "heat_pump_state",
+        "cooling_state",
+        "cooling_activity",
+        "cooling_pause_reason",
+        "cooling_stop_reason",
+        "cooling_start_conditions",
+    ):
+        assert getattr(working, name) == getattr(stalled, name), name
+
+    # only what it measures gives the stall away
+    assert working.compressor_rpm == 2100
+    assert stalled.compressor_rpm == 0
+    assert working.power_output == -4973
+    assert stalled.power_output == 0
+    assert working.air_outlet_temperature == 23
+    assert stalled.air_outlet_temperature == 45.3
+
+
+def test_the_stop_reason_survives_into_a_running_cooling_cycle():
+    """Test the stop reason is why the last cycle ended, not the current state."""
+    pump = HeatPump("https://example.invalid", "heat-pump")
+    pump._last_log = RawHeatpumpLogAndIsOnlineDto.from_dict(
+        load("log_latest_cooling_active.json")
+    )
+
+    assert pump.heat_pump_state is HeatPump.State.COOLING
+    assert pump.cooling_stop_reason is HeatPump.CoolingStopReason.HEAT_PUMP_CONTROL
+
+
+def test_a_heat_pump_without_dhw_control_reports_no_target():
+    """Test a heat pump with DHW control off reports a target of zero.
+
+    Zero is how it says there is no target, not a target of zero degrees, so a
+    consumer has to read it together with the control method.
+    """
+    pump = HeatPump("https://example.invalid", "heat-pump")
+    pump._last_log = RawHeatpumpLogAndIsOnlineDto.from_dict(
+        load("log_latest_dhw_method_none.json")
+    )
+
+    assert pump.dhw_control_method is HeatPump.DhwControlMethod.NONE
+    assert pump.dhw_target_temperature == 0
