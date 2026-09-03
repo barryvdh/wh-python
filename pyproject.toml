@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "weheat"
-version = "2026.9.3"
+version = "2026.9.4"
 description = "Weheat Backend"
 authors = ["Jesper Raemaekers <jesper.raemaekers@wefabricate.com>", "Kjell van Straaten <kjell.van.straaten@wefabricate.com>"]
 license = "MIT"

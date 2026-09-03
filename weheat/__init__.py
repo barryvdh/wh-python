@@ -14,7 +14,7 @@
 """  # noqa: E501
 
 
-__version__ = "2026.9.3"
+__version__ = "2026.9.4"
 
 # import apis into sdk package
 from weheat.api.energy_log_api import EnergyLogApi
