@@ -5,6 +5,7 @@ These run without API credentials, unlike the tests in test_ha_api.py.
 import pytest
 
 from weheat.abstractions.heat_pump import HeatPump
+from weheat.models import TotalEnergyAggregate
 from weheat.models.raw_heatpump_log_and_is_online_dto import RawHeatpumpLogAndIsOnlineDto
 
 BASE_LOG = {
@@ -199,3 +200,49 @@ def test_dhw_control_method(code, expected):
 
     assert pump.dhw_control_method is expected
     assert pump.dhw_control_method_code == code
+
+
+ENERGY = {
+    "totalEInHeating": 100, "totalEInStandby": 1, "totalEInDhw": 2,
+    "totalEInHeatingDefrost": 3, "totalEInDhwDefrost": 4, "totalEInCooling": 5,
+    "totalEOutHeating": 6, "totalEOutDhw": 7, "totalEOutHeatingDefrost": -1,
+    "totalEOutDhwDefrost": -2, "totalEOutCooling": -3,
+    "totalEInIUStandby": 10, "totalEInIUHeating": 11, "totalEInIUDhw": 12,
+    "totalEInIUHeatingDefrost": 13, "totalEInIUDhwDefrost": 14,
+    "totalEInIUCooling": 15,
+}
+
+SUMMED = ["energy_in_defrost", "energy_out_defrost", "energy_total",
+          "energy_output", "energy_in_indoor_unit"]
+
+
+def energy(**overrides) -> HeatPump:
+    """Build a heat pump holding energy totals with the given overrides."""
+    pump = HeatPump("https://example.invalid", "0000-1111-2222-3333")
+    pump._energy_total = TotalEnergyAggregate.from_dict({**ENERGY, **overrides})
+    return pump
+
+
+def test_energy_totals_add_up():
+    """Test the totals are the sum of the counters behind them."""
+    pump = energy()
+
+    assert pump.energy_in_indoor_unit == 10 + 11 + 12 + 13 + 14 + 15
+    assert pump.energy_in_defrost == 3 + 4
+    assert pump.energy_total == 100 + 1 + 2 + 3 + 4 + 5
+    # cooling is reported negative, and counts towards what was delivered
+    assert pump.energy_output == 6 + 7 - 1 - 2 + 3
+
+
+@pytest.mark.parametrize("missing", list(ENERGY))
+def test_a_missing_counter_is_not_added_up(missing):
+    """Test a counter the backend leaves out gives no total rather than raising.
+
+    Every counter is optional in the API, and adding None used to raise, which
+    took down everything reading any of these totals.
+    """
+    pump = energy(**{missing: None})
+
+    for name in SUMMED:
+        getattr(pump, name)
+    assert any(getattr(pump, name) is None for name in SUMMED)

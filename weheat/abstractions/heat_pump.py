@@ -246,6 +246,20 @@ class HeatPump:
         """The raw stop reason the heat pump reports, named by cooling_stop_reason."""
         return self._if_available("cooling_stop_reason")
 
+    def _energy_sum(self, *fields: str) -> Union[float, None]:
+        """Sum the named energy counters, or None if any of them is missing.
+
+        Every counter is optional in the API, so one the backend leaves out would
+        otherwise raise while adding it up. A partial sum is worse than nothing
+        here, since consumers track these as totals that only ever rise.
+        """
+        if self._energy_total is None:
+            return None
+        values = [getattr(self._energy_total, field) for field in fields]
+        if any(value is None for value in values):
+            return None
+        return float(sum(values))
+
     @property
     def raw_content(self) -> Optional[dict]:
         raw = {}
@@ -590,101 +604,78 @@ class HeatPump:
     @property
     def energy_in_heating(self) -> Union[float, None]:
         """The total used energy in heating mode."""
-        if self._energy_total is None:
-            return None
-        return float(self._energy_total.total_ein_heating)
+        return self._energy_sum("total_ein_heating")
 
     @property
     def energy_in_dhw(self) -> Union[float, None]:
         """The total used energy in DHW mode."""
-        if self._energy_total is None:
-            return None
-        return float(self._energy_total.total_ein_dhw)
+        return self._energy_sum("total_ein_dhw")
 
     @property
     def energy_in_defrost(self) -> Union[float, None]:
         """The total used energy in defrost modes."""
-        if self._energy_total is None:
-            return None
-        return float(self._energy_total.total_ein_heating_defrost + self._energy_total.total_ein_dhw_defrost)
+        return self._energy_sum("total_ein_heating_defrost", "total_ein_dhw_defrost")
 
     @property
     def energy_in_defrost_dhw(self) -> Union[float, None]:
         """The total used energy in defrost from DHW mode."""
-        if self._energy_total is None:
-            return None
-        return float(self._energy_total.total_ein_dhw_defrost)
+        return self._energy_sum("total_ein_dhw_defrost")
 
     @property
     def energy_in_defrost_ch(self) -> Union[float, None]:
         """The total used energy in defrost from CH mode."""
-        if self._energy_total is None:
-            return None
-        return float(self._energy_total.total_ein_heating_defrost)
+        return self._energy_sum("total_ein_heating_defrost")
 
     @property
     def energy_in_cooling(self) -> Union[float, None]:
         """The total used energy in cooling mode."""
-        if self._energy_total is None:
-            return None
-        return float(self._energy_total.total_ein_cooling)
+        return self._energy_sum("total_ein_cooling")
 
     @property
     def energy_in_standby(self) -> Union[float, None]:
         """The total used energy in standby mode."""
-        if self._energy_total is None:
-            return None
-        return float(self._energy_total.total_ein_standby)
+        return self._energy_sum("total_ein_standby")
         
     @property
     def energy_out_heating(self) -> Union[float, None]:
         """The total supplied energy in heating mode."""
-        if self._energy_total is None:
-            return None
-        return float(self._energy_total.total_e_out_heating)
+        return self._energy_sum("total_e_out_heating")
 
     @property
     def energy_out_dhw(self) -> Union[float, None]:
         """The total supplied energy in DHW mode."""
-        if self._energy_total is None:
-            return None
-        return float(self._energy_total.total_e_out_dhw)
+        return self._energy_sum("total_e_out_dhw")
 
     @property
     def energy_out_defrost(self) -> Union[float, None]:
         """The total supplied energy in defrost modes.
         Note that this energy value is negative as energy is removed from the water.
         """
-        if self._energy_total is None:
-            return None
-        return float(self._energy_total.total_e_out_dhw_defrost + self._energy_total.total_e_out_heating_defrost)
+        return self._energy_sum(
+            "total_e_out_dhw_defrost",
+            "total_e_out_heating_defrost",
+        )
 
     @property
     def energy_out_defrost_dhw(self) -> Union[float, None]:
         """The total supplied energy in defrost DHW mode.
         Note that this energy value is negative as energy is removed from the water.
         """
-        if self._energy_total is None:
-            return None
-        return float(self._energy_total.total_e_out_dhw_defrost)
+        return self._energy_sum("total_e_out_dhw_defrost")
 
     @property
     def energy_out_defrost_ch(self) -> Union[float, None]:
         """The total supplied energy in defrost CH mode.
         Note that this energy value is negative as energy is removed from the water.
         """
-        if self._energy_total is None:
-            return None
-        return float(self._energy_total.total_e_out_heating_defrost)
+        return self._energy_sum("total_e_out_heating_defrost")
 
     @property
     def energy_out_cooling(self) -> Union[float, None]:
         """The total supplied energy in cooling mode.
         Note that this energy value is negative as energy is removed from the water.
         """
-        if self._energy_total is None:
-            return None
-        return float(self._energy_total.total_e_out_cooling)
+        return self._energy_sum("total_e_out_cooling")
 
     @property
     def energy_total(self) -> Union[float, None]:
@@ -693,32 +684,38 @@ class HeatPump:
         This does not include the indoor unit, which the heat pump meters
         separately and reports through energy_in_indoor_unit.
         """
-        if self._energy_total is None:
-            return None
-        return float(
-            self._energy_total.total_ein_heating + self._energy_total.total_ein_dhw + 
-            self._energy_total.total_ein_cooling + self._energy_total.total_ein_standby +
-            self._energy_total.total_ein_heating_defrost + self._energy_total.total_ein_dhw_defrost
+        return self._energy_sum(
+            "total_ein_heating",
+            "total_ein_dhw",
+            "total_ein_cooling",
+            "total_ein_standby",
+            "total_ein_heating_defrost",
+            "total_ein_dhw_defrost",
         )
 
     @property
     def energy_in_indoor_unit(self) -> Union[float, None]:
         """The total used (electrical) energy of the indoor unit in kWh."""
-        if self._energy_total is None:
-            return None
-        return float(
-            self._energy_total.total_ein_iu_heating + self._energy_total.total_ein_iu_dhw +
-            self._energy_total.total_ein_iu_cooling + self._energy_total.total_ein_iu_standby +
-            self._energy_total.total_ein_iu_heating_defrost +
-            self._energy_total.total_ein_iu_dhw_defrost
+        return self._energy_sum(
+            "total_ein_iu_heating",
+            "total_ein_iu_dhw",
+            "total_ein_iu_cooling",
+            "total_ein_iu_standby",
+            "total_ein_iu_heating_defrost",
+            "total_ein_iu_dhw_defrost",
         )
 
     @property
     def energy_output(self) -> Union[float, None]:
         """The total useful generated energy for the house in kWh."""
-        if self._energy_total is None:
+        delivered = self._energy_sum(
+            "total_e_out_heating",
+            "total_e_out_dhw",
+            "total_e_out_heating_defrost",
+            "total_e_out_dhw_defrost",
+        )
+        cooling = self.energy_out_cooling
+        if delivered is None or cooling is None:
             return None
-        return float(
-            self._energy_total.total_e_out_heating + self._energy_total.total_e_out_dhw +
-            self._energy_total.total_e_out_heating_defrost + self._energy_total.total_e_out_dhw_defrost +
-            (-self._energy_total.total_e_out_cooling))
+        # cooling is reported as a negative amount, as heat leaves the water
+        return delivered - cooling
